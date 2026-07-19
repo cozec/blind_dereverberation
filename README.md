@@ -15,6 +15,41 @@ audio and spectrograms. WPE (4 mics) reaches STOI 0.852 and voicefixer (1 mic)
 0.863, from a reverberant baseline of 0.645 — with very different tradeoffs,
 explained below.
 
+## Project landscape
+
+Survey of open-source blind dereverberation projects, ordered from simplest to
+most advanced. This repo implements demos from Tier 1 (nara_wpe) and Tier 2
+(voicefixer).
+
+### Tier 1 — Simple classical (statistical, no training, CPU-only)
+
+| Project | Stars | Notes |
+|---|---|---|
+| [fgnt/nara_wpe](https://github.com/fgnt/nara_wpe) | 566 | WPE — *the* standard blind dereverberation baseline. `pip install nara-wpe`, offline/block-online/frame-online variants, single- or multi-channel, example notebooks with audio. MIT. |
+| [helianvine/fdndlp](https://github.com/helianvine/fdndlp) | 158 | Same WPE family (variance-normalized delayed linear prediction), MATLAB + Python — good for studying the math. |
+| [Debapriya-Tula/Speech_Dereverberation](https://github.com/Debapriya-Tula/Speech_Dereverberation), [mrajeswarasai/Speech-Dereverberation](https://github.com/mrajeswarasai/Speech-Dereverberation) | small | Minimal student-scale WPE implementations — easiest code to read end-to-end. |
+
+### Tier 2 — Pretrained deep learning (download checkpoint, run inference)
+
+| Project | Stars | Notes |
+|---|---|---|
+| [haoheliu/voicefixer](https://github.com/haoheliu/voicefixer) | 1.4k | General speech restoration (dereverb + denoise + declip + bandwidth) with pretrained models and a simple API — the easiest "it just works" neural demo. |
+| [DiegoLeon96/Neural-Speech-Dereverberation](https://github.com/DiegoLeon96/Neural-Speech-Dereverberation) | 120 | U-Net-style models, good mid-complexity learning repo. |
+| [MathWorks deep-learning example](https://www.mathworks.com/help/audio/ug/dereverberate-speech-using-deep-learning-networks.html) | — | Pretrained U-Net walkthrough (MATLAB). |
+
+### Tier 3 — Research-grade blind/unsupervised (GPU, diffusion/VAE methods)
+
+| Project | Notes |
+|---|---|
+| [sp-uhh/buddy](https://github.com/sp-uhh/buddy) | "Single-Channel **Blind** Unsupervised Dereverberation with Diffusion Models." Pretrained VCTK checkpoint; closest match to modern "blind dereverberation" literature. |
+| [Audio-WestlakeU/RVAE-EM](https://github.com/Audio-WestlakeU/RVAE-EM) | Recurrent VAE + EM (ICASSP 2024), unsupervised and supervised variants. |
+| [Audio-WestlakeU/VINP](https://github.com/Audio-WestlakeU/VINP) | Joint dereverberation + blind RIR identification (IEEE TASLP). |
+| [rrbluke/BSSD](https://github.com/rrbluke/BSSD) | Joint blind source separation + dereverberation. |
+
+Listening demos (no install): [Sony unsupervised vocal dereverberation](https://koichi-saito-sony.github.io/unsupervised-vocal-dereverb/audio_samples.html) ·
+[PEVD speech dereverberation](https://vwn09.github.io/pevd-enhance/dereverb.html) ·
+[USD-DPS multi-channel diffusion](https://arxiv.org/html/2508.02071v1)
+
 ## Setup (WPE demo)
 
 ```bash
