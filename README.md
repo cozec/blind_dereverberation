@@ -63,6 +63,62 @@ From a **single** microphone it slightly beats 4-mic WPE on this clip
 silence gaps — but unlike WPE it resynthesizes audio through a vocoder, so it
 can alter timbre/content, and it needs ~1 min on CPU vs seconds for WPE.
 
+### How voicefixer works
+
+VoiceFixer (Liu et al., 2021: *"VoiceFixer: Toward General Speech Restoration
+with Neural Vocoder"*) targets **General Speech Restoration** — one model that
+simultaneously fixes noise, reverberation, clipping, and low bandwidth, rather
+than one specialized model per distortion. It never needs to be told which
+degradation is present.
+
+**Two-stage architecture:**
+
+1. **Analysis** — a ResUNet operates on the **mel spectrogram** of the degraded
+   input and predicts the clean mel spectrogram. Mel is compact and perceptually
+   weighted, and discards phase/fine detail, so this stage only has to get the
+   perceptual "sketch" of clean speech right. (This is the ~467 MB `vf.ckpt`.)
+2. **Synthesis** — a TFGAN-based **neural vocoder**, pretrained separately on
+   clean 44.1 kHz speech, generates a brand-new waveform from that mel sketch.
+   (This is the ~135 MB vocoder checkpoint.)
+
+Nothing of the original waveform survives to the output — not phase, not sample
+values. This is the opposite of WPE's `output = input − predicted_late_reverb`,
+which can only ever remove energy from the real signal. Consequences:
+
+- **Crisp gaps**: the vocoder generates nothing where the estimated mel says
+  silence, while WPE leaves whatever residual its linear filter couldn't predict.
+- **Always 44.1 kHz out**: the analysis stage learned bandwidth extension, so it
+  *invents* plausible content above the input's Nyquist — useful for restoring
+  old recordings, but fabricated detail (the demo resamples back to 16 kHz
+  before scoring STOI).
+- **Hallucination risk**: if analysis misreads a degraded phone or word, the
+  vocoder confidently synthesizes the *wrong* clean speech. No mechanism forces
+  fidelity to the input the way WPE's subtractive math does.
+- **Timbre drift**: the voice is re-generated, so speaker identity can shift
+  slightly.
+
+**Training**: the analysis stage is trained supervised on *simulated*
+degradations — clean 44.1 kHz speech (VCTK and others) convolved with RIRs,
+mixed with noise, clipped, and band-limited, in random combinations. So it is
+supervised in training but still **blind at inference**: it learned the
+statistical signature of each distortion family, not any specific room. The
+vocoder is trained separately on clean speech with GAN + spectral losses.
+
+**API**: `VoiceFixer().restore(input, output, cuda, mode)` with `mode=0` the
+standard path (used here), `mode=1` adding input normalization for very
+quiet/loud recordings, `mode=2` a try-everything convenience. A separate
+`Vocoder` class accepts your own mel spectrograms.
+
+### Placing the methods
+
+WPE is transparent, provably non-destructive, multi-channel-aware, and instant —
+the safe default and standard ASR front-end. VoiceFixer trades those guarantees
+for generative power: single-channel, compound degradations, bandwidth
+restoration, subjectively cleaner audio — but it repairs by resynthesis and can
+hallucinate. BUDDy (next rung, not included here) keeps the generative power but
+is *unsupervised*: no paired training data, jointly estimating the reverb
+operator and clean speech via diffusion posterior sampling.
+
 ## How WPE / nara_wpe works
 
 `nara_wpe` is the reference implementation of **Weighted Prediction Error (WPE)**
