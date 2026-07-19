@@ -20,8 +20,9 @@ pip install nara-wpe soundfile matplotlib pystoi
 python src/wpe_demo.py
 ```
 
-The script:
-1. Concatenates four clean CMU Arctic utterances (16 kHz mono, ~12.6 s) from `data/`.
+The script is self-contained — on first run it downloads the four clean CMU
+Arctic utterances into `data/`. It then:
+1. Concatenates the utterances (16 kHz mono, ~12.6 s).
 2. Simulates a 4-microphone reverberant recording (synthetic RIRs: unit direct
    path + exponentially decaying noise tail, RT60 = 0.6 s).
 3. Runs offline multi-channel WPE (taps=10, delay=3, 5 iterations) in the STFT domain.

@@ -10,6 +10,9 @@ Pipeline:
    and report STOI against the clean reference.
 """
 
+import os
+import urllib.request
+
 import numpy as np
 import soundfile as sf
 import matplotlib
@@ -46,9 +49,25 @@ def spectrogram_db(x):
     return 20 * np.log10(np.abs(X).T + 1e-10)
 
 
+ARCTIC_URL = "http://festvox.org/cmu_arctic/cmu_arctic/cmu_us_bdl_arctic/wav"
+UTTERANCES = ["arctic_a0001", "arctic_a0002", "arctic_a0003", "arctic_a0004"]
+
+
+def fetch_data():
+    """Download the CMU Arctic utterances into data/ if not already present."""
+    os.makedirs("data", exist_ok=True)
+    for name in UTTERANCES:
+        path = f"data/{name}.wav"
+        if not os.path.exists(path):
+            print(f"Downloading {name}.wav ...")
+            urllib.request.urlretrieve(f"{ARCTIC_URL}/{name}.wav", path)
+
+
 def main():
-    files = ["clean.wav", "arctic_a0002.wav", "arctic_a0003.wav", "arctic_a0004.wav"]
-    clean = np.concatenate([sf.read(f"data/{f}")[0] for f in files])
+    fetch_data()
+    os.makedirs("results", exist_ok=True)
+    os.makedirs("plots", exist_ok=True)
+    clean = np.concatenate([sf.read(f"data/{f}.wav")[0] for f in UTTERANCES])
     clean = clean / np.max(np.abs(clean))
     n = len(clean)
     print(f"Clean signal: {n / FS:.1f} s at {FS} Hz")
