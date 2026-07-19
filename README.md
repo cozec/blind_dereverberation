@@ -1,12 +1,21 @@
-# Blind Dereverberation — WPE Demo
+# Blind Dereverberation — WPE vs. Neural Restoration
 
-Minimal demo of blind speech dereverberation using the classical **Weighted
-Prediction Error (WPE)** algorithm via [nara_wpe](https://github.com/fgnt/nara_wpe).
-"Blind" means no knowledge of the room impulse response and no trained model —
-WPE estimates a long-term linear prediction filter directly from the observed
-reverberant audio.
+Hands-on comparison of speech dereverberation approaches on the same simulated
+reverberant recording, from classical to neural:
 
-## Setup
+- **WPE** (Weighted Prediction Error) via
+  [nara_wpe](https://github.com/fgnt/nara_wpe) — the classical blind method:
+  no room knowledge, no trained model, just a long-term linear prediction
+  filter estimated from the observed audio itself.
+- **voicefixer** — a pretrained neural restoration model that re-synthesizes
+  clean speech through a neural vocoder from a single microphone.
+
+Both are evaluated with STOI against the clean reference, with before/after
+audio and spectrograms. WPE (4 mics) reaches STOI 0.852 and voicefixer (1 mic)
+0.863, from a reverberant baseline of 0.645 — with very different tradeoffs,
+explained below.
+
+## Setup (WPE demo)
 
 ```bash
 python3 -m venv .venv
