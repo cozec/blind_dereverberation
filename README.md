@@ -31,13 +31,37 @@ Arctic utterances into `data/`. It then:
 
 ## Result
 
-| Signal | STOI (vs clean) |
-|---|---|
-| Reverberant (mic 0, RT60 0.6 s) | 0.645 |
-| WPE dereverberated | **0.852** |
+| Signal | Mics | STOI (vs clean) |
+|---|---|---|
+| Reverberant (mic 0, RT60 0.6 s) | — | 0.645 |
+| WPE dereverberated | 4 | 0.852 |
+| voicefixer restored | 1 | **0.863** |
 
-Runs in a few seconds on CPU. Listen to the three WAVs in `results/` for the
+WPE runs in a few seconds on CPU. Listen to the WAVs in `results/` for the
 before/after comparison.
+
+## Neural comparison: voicefixer
+
+[voicefixer](https://github.com/haoheliu/voicefixer) is a pretrained neural
+speech-restoration model (analysis network + neural vocoder that *resynthesizes*
+the waveform). It needs Python ≤3.11 for its torch dependency, so it lives in a
+separate venv:
+
+```bash
+python3.11 -m venv .venv-vf
+.venv-vf/bin/pip install voicefixer pystoi
+.venv-vf/bin/python src/voicefixer_demo.py   # run src/wpe_demo.py first
+```
+
+On first use it downloads ~630 MB of checkpoints to `~/.cache/voicefixer/`
+(if the built-in Zenodo download stalls, fetch
+`https://zenodo.org/record/5600188/files/vf.ckpt` manually with
+`curl -L -C -` into `~/.cache/voicefixer/analysis_module/checkpoints/`).
+
+From a **single** microphone it slightly beats 4-mic WPE on this clip
+(STOI 0.863 vs 0.852, `plots/wpe_vs_voicefixer.png`), with noticeably crisper
+silence gaps — but unlike WPE it resynthesizes audio through a vocoder, so it
+can alter timbre/content, and it needs ~1 min on CPU vs seconds for WPE.
 
 ## How WPE / nara_wpe works
 
