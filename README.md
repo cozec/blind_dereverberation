@@ -82,7 +82,15 @@ Arctic utterances into `data/`. It then:
 | voicefixer restored | 1 | **0.863** |
 
 WPE runs in a few seconds on CPU. Listen to the WAVs in `results/` for the
-before/after comparison.
+before/after comparison. On the first 4 s of the clip (the segment BUDDy was
+run on), all methods compare as:
+
+| Method (4 s window) | Mics | Training data | STOI |
+|---|---|---|---|
+| Reverberant input | — | — | 0.650 |
+| WPE | 4 | none | 0.846 |
+| BUDDy (T=201) | 1 | clean speech only (unsupervised) | 0.873 |
+| voicefixer | 1 | paired clean/degraded (supervised) | **0.881** |
 
 ## Neural comparison: voicefixer
 
@@ -153,15 +161,53 @@ standard path (used here), `mode=1` adding input normalization for very
 quiet/loud recordings, `mode=2` a try-everything convenience. A separate
 `Vocoder` class accepts your own mel spectrograms.
 
+## Tier 3: BUDDy (blind unsupervised diffusion)
+
+[BUDDy](https://github.com/sp-uhh/buddy) jointly estimates the clean speech
+*and* the room impulse response through diffusion posterior sampling — no
+paired training data, no room knowledge. Its score model is trained on clean
+(anechoic) VCTK speech only; at inference it alternates diffusion denoising
+steps with gradient updates of a subband-filtering reverb operator
+(parameterized by per-band decay + phases), warm-initialized with WPE.
+The result on our clip (first 4 s, single mic): **STOI 0.650 → 0.873**, beating
+4-mic WPE and nearly matching supervised voicefixer — plus a blind RIR estimate
+whose energy decay tracks the true RT60-0.6 s curve down to about −40 dB
+(`plots/buddy_comparison.png`, `results/buddy_out.wav`).
+
+Setup used here (Apple Silicon, no CUDA):
+
+```bash
+git clone https://github.com/sp-uhh/buddy.git buddy   # gitignored
+# checkpoint (424 MB): gdown --folder https://drive.google.com/drive/folders/1fEvzbiIy77A1i5aiOwPf78OKQjCemOmQ
+.venv-vf/bin/pip install hydra-core einops pyroomacoustics torchcde torchaudio nara-wpe ...
+.venv/bin/python src/buddy_prep.py    # writes buddy/my_data/{clean,rir}/adam/ from our demo clip
+cd buddy && USE_MPS=1 PYTORCH_ENABLE_MPS_FALLBACK=1 WANDB_MODE=disabled \
+  ../.venv-vf/bin/python test.py --config-name=conf_VCTK.yaml \
+  tester=blind_dereverberation_BUDDy tester.checkpoint=<abs-path-to>/VCTK_16k_4s_time-190000.pt \
+  tester.sampling_params.T=201 model_dir=experiments/full +gpu=0 \
+  dset=vctk_16k_4s_test-benchmark dset.test.path=my_data \
+  'dset.test.speakers_test=[adam]' dset.test.num_examples=1
+```
+
+Small patches were needed for CPU/MPS (the repo assumes CUDA): guard
+`torch.cuda.set_device`, `weights_only=False` in the tester's `torch.load`
+(torch ≥ 2.6), float32 cast after the WPE warm-init, `.to(device)` on the STFT
+windows, and MPS-aware device selection in `testing/operators/*.py`.
+
+Runtime for 4 s of audio at the paper's T=201: **~10.5 min on Apple Silicon
+MPS**; the same run on CPU extrapolates to many hours (a 10-step CPU smoke test
+took 50 min). Reduced step counts collapse quality (T=10 gave almost no STOI
+gain) — the joint speech + RIR estimation genuinely needs the long schedule.
+
 ### Placing the methods
 
 WPE is transparent, provably non-destructive, multi-channel-aware, and instant —
 the safe default and standard ASR front-end. VoiceFixer trades those guarantees
 for generative power: single-channel, compound degradations, bandwidth
 restoration, subjectively cleaner audio — but it repairs by resynthesis and can
-hallucinate. BUDDy (next rung, not included here) keeps the generative power but
-is *unsupervised*: no paired training data, jointly estimating the reverb
-operator and clean speech via diffusion posterior sampling.
+hallucinate. BUDDy keeps the generative power but is *unsupervised*: no paired
+training data, jointly estimating the reverb operator and clean speech via
+diffusion posterior sampling — at ~100× the compute of either (see above).
 
 ## How WPE / nara_wpe works
 
