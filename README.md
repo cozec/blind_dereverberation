@@ -18,8 +18,8 @@ explained below.
 ## Project landscape
 
 Survey of open-source blind dereverberation projects, ordered from simplest to
-most advanced. This repo implements demos from Tier 1 (nara_wpe) and Tier 2
-(voicefixer).
+most advanced. This repo implements demos from all three tiers: Tier 1 (nara_wpe), Tier 2
+(voicefixer), and Tier 3 (BUDDy).
 
 ### Tier 1 — Simple classical (statistical, no training, CPU-only)
 
